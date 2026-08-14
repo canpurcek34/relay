@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "@effect/atom-react";
+import { useTranslation } from "react-i18next";
 import {
   type BackgroundActivityProfile,
   type DesktopUpdateChannel,
@@ -482,6 +483,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.timestampFormat !== DEFAULT_UNIFIED_SETTINGS.timestampFormat
         ? ["Time format"]
         : []),
+      ...(settings.appLocale !== DEFAULT_UNIFIED_SETTINGS.appLocale ? ["Language"] : []),
       ...(settings.sidebarThreadPreviewCount !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount
         ? ["Visible threads"]
         : []),
@@ -554,6 +556,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.sidebarProjectGroupingMode,
       settings.sidebarThreadPreviewCount,
       settings.timestampFormat,
+      settings.appLocale,
       settings.wordWrap,
       followSystem,
       theme,
@@ -625,6 +628,7 @@ export function useSettingsRestore(onRestored?: () => void) {
     }
     updateSettings({
       timestampFormat: DEFAULT_UNIFIED_SETTINGS.timestampFormat,
+      appLocale: DEFAULT_UNIFIED_SETTINGS.appLocale,
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
@@ -1742,6 +1746,7 @@ function LegacyFeaturesSection() {
 }
 
 export function GeneralSettingsPanel() {
+  const { t } = useTranslation();
   const settings = usePrimarySettings();
   const updateSettings = useUpdatePrimarySettings();
   const [backgroundActivityDialogOpen, setBackgroundActivityDialogOpen] = useState(false);
@@ -1937,6 +1942,49 @@ export function GeneralSettingsPanel() {
                 </SelectItem>
                 <SelectItem hideIndicator value="24-hour">
                   {TIMESTAMP_FORMAT_LABELS["24-hour"]}
+                </SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("language")}
+          title={t("settings.language.title")}
+          description={t("settings.language.description")}
+          resetAction={
+            settings.appLocale !== DEFAULT_UNIFIED_SETTINGS.appLocale ? (
+              <SettingResetButton
+                label={t("settings.language.title").toLowerCase()}
+                onClick={() =>
+                  updateSettings({
+                    appLocale: DEFAULT_UNIFIED_SETTINGS.appLocale,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.appLocale}
+              onValueChange={(value) => {
+                if (value === "system" || value === "en" || value === "tr") {
+                  updateSettings({ appLocale: value });
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40" aria-label={t("settings.language.title")}>
+                <SelectValue>{t(`settings.language.options.${settings.appLocale}`)}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                <SelectItem hideIndicator value="system">
+                  {t("settings.language.options.system")}
+                </SelectItem>
+                <SelectItem hideIndicator value="en">
+                  {t("settings.language.options.en")}
+                </SelectItem>
+                <SelectItem hideIndicator value="tr">
+                  {t("settings.language.options.tr")}
                 </SelectItem>
               </SelectPopup>
             </Select>

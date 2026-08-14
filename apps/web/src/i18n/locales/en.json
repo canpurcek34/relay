@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "Choose the interface language. Provider and agent responses are never translated.",
+      "options": {
+        "system": "System default",
+        "en": "English",
+        "tr": "Türkçe"
+      }
+    }
+  }
+}

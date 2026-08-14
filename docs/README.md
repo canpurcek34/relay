@@ -7,7 +7,7 @@ Relay fork planning and architecture are tracked in [PROJECT.md](../PROJECT.md),
 The inherited user and maintainer documentation below is being renamed incrementally so links,
 stored identifiers, and upstream integrations remain compatible during the transition.
 
-## Using T3 Code
+## Using Relay
 
 - [Install and first run](./user/install.md)
 - [Permission modes](./user/permission-modes.md)

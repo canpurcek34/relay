@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "language": {
+      "title": "Dil",
+      "description": "Arayüz dilini seçin. Sağlayıcı ve ajan yanıtları asla çevrilmez.",
+      "options": {
+        "system": "Sistem varsayılanı",
+        "en": "English",
+        "tr": "Türkçe"
+      }
+    }
+  }
+}

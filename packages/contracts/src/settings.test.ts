@@ -67,6 +67,22 @@ describe("ClientSettings environment identification", () => {
   });
 });
 
+describe("ClientSettings appLocale", () => {
+  it("defaults to system, which resolves against the platform locale", () => {
+    expect(decodeClientSettings({}).appLocale).toBe("system");
+  });
+
+  it.each(["system", "en", "tr"] as const)("accepts a supported locale: %s", (value) => {
+    expect(decodeClientSettings({ appLocale: value }).appLocale).toBe(value);
+    expect(decodeClientSettingsPatch({ appLocale: value }).appLocale).toBe(value);
+  });
+
+  it("rejects an unsupported locale", () => {
+    expect(() => decodeClientSettings({ appLocale: "de" })).toThrow();
+    expect(() => decodeClientSettingsPatch({ appLocale: "de" })).toThrow();
+  });
+});
+
 describe("ClientSettings sidebar", () => {
   it("defaults to the current sidebar with automatic merge and inactivity settling", () => {
     const settings = decodeClientSettings({});

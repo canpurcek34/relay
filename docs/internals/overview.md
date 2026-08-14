@@ -135,6 +135,9 @@ already dispatch.
 - [Remote environments](./remote.md), [Server updates](./server-updates.md)
 - [Resource telemetry](./resource-telemetry.md)
 - [Scripts](./scripts.md), [CI gates](./ci.md)
+- Relay product planning: [PROJECT.md](../../PROJECT.md), [PLAN.md](../../PLAN.md),
+  [PROGRESS.md](../../PROGRESS.md), [FILETREE.md](../../FILETREE.md), and
+  [SECURITY.md](../../SECURITY.md)
 
 [rpc]: ../../packages/contracts/src/rpc.ts
 [contracts]: ../../packages/contracts/src/orchestration.ts

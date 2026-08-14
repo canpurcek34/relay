@@ -1,4 +1,11 @@
-# T3 Code docs
+# Relay docs
+
+Relay fork planning and architecture are tracked in [PROJECT.md](../PROJECT.md),
+[PLAN.md](../PLAN.md), [PROGRESS.md](../PROGRESS.md), [FILETREE.md](../FILETREE.md), and
+[SECURITY.md](../SECURITY.md).
+
+The inherited user and maintainer documentation below is being renamed incrementally so links,
+stored identifiers, and upstream integrations remain compatible during the transition.
 
 ## Using T3 Code
 

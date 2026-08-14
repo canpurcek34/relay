@@ -25,3 +25,27 @@ describe("syncAppLocale", () => {
     expect(i18next.language).toBe("en");
   });
 });
+
+describe("pluralization", () => {
+  // English has a distinct "one" plural category; Turkish's CLDR plural
+  // rule set has only "other" — the noun doesn't inflect for count. Both
+  // must resolve through the same `common.daysRemaining` key without the
+  // caller branching on locale, per docs/LOCALIZATION.md.
+  //
+  // Turkish still needs an explicit `_one` entry (even though CLDR only
+  // requires `_other`): without it, i18next's plural resolver falls
+  // through to `fallbackLng` ("en") for count===1 and silently renders
+  // English text under an active Turkish UI. This test caught that
+  // regression once — keep it.
+  it("selects English's singular vs plural form by count", async () => {
+    await i18next.changeLanguage("en");
+    expect(i18next.t("common.daysRemaining", { count: 1 })).toBe("1 day left");
+    expect(i18next.t("common.daysRemaining", { count: 5 })).toBe("5 days left");
+  });
+
+  it("uses Turkish's single invariant form regardless of count", async () => {
+    await i18next.changeLanguage("tr");
+    expect(i18next.t("common.daysRemaining", { count: 1 })).toBe("1 gün kaldı");
+    expect(i18next.t("common.daysRemaining", { count: 5 })).toBe("5 gün kaldı");
+  });
+});

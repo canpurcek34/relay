@@ -1955,7 +1955,7 @@ export function GeneralSettingsPanel() {
           resetAction={
             settings.appLocale !== DEFAULT_UNIFIED_SETTINGS.appLocale ? (
               <SettingResetButton
-                label={t("settings.language.title").toLowerCase()}
+                label="language"
                 onClick={() =>
                   updateSettings({
                     appLocale: DEFAULT_UNIFIED_SETTINGS.appLocale,

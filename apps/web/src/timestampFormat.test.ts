@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+import { i18next } from "./i18n";
 import {
   formatElapsedDurationLabel,
   formatExpiresInLabel,
@@ -170,5 +171,27 @@ describe("formatElapsedDurationLabel", () => {
     expect(formatElapsedDurationLabel("2026-04-07T11:45:00.000Z")).toBe("15m");
     expect(formatElapsedDurationLabel("2026-04-07T06:00:00.000Z")).toBe("6h");
     expect(formatElapsedDurationLabel("2026-04-03T12:00:00.000Z")).toBe("4d");
+  });
+});
+
+describe("formatTimestamp locale-following", () => {
+  afterEach(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  it("renders the active UI language's clock conventions under 'locale' format", async () => {
+    // "locale" format defers hour notation entirely to Intl: en renders an
+    // AM/PM marker, tr renders 24-hour with no marker. Comparing the two
+    // for the same instant proves the formatter re-resolves per language
+    // rather than caching a stale one across changeLanguage calls.
+    const instant = "2026-04-07T09:00:00.000Z";
+
+    await i18next.changeLanguage("en");
+    const enFormatted = formatTimestamp(instant, "locale");
+
+    await i18next.changeLanguage("tr");
+    const trFormatted = formatTimestamp(instant, "locale");
+
+    expect(enFormatted).not.toBe(trFormatted);
   });
 });

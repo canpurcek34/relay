@@ -2,9 +2,10 @@
 
 Relay ships English and Turkish as first-class languages from day one.
 
-> **Status: foundation implemented on web.** `i18next` + `react-i18next` are wired into
-> `apps/web` (desktop gets it for free — Electron wraps the same web bundle). `apps/mobile` has
-> its own React Native UI and is not covered yet. Track progress in [PROGRESS.md](../PROGRESS.md).
+> **Status: foundation implemented on web, desktop, and mobile.** `i18next` + `react-i18next` are
+> wired into `apps/web` (desktop gets it for free — Electron wraps the same web bundle) and
+> separately into `apps/mobile` (its own React Native UI, its own resource bundle — apps do not
+> import across `apps/*`). Track progress in [PROGRESS.md](../PROGRESS.md).
 
 ## Supported locales
 
@@ -60,27 +61,58 @@ Two notes:
 `resolveAppLocale` (`packages/client-runtime/src/state/locale.ts`) turns an `AppLocale` plus a list
 of platform locale tags into a concrete `"en" | "tr"` to render — resolving `"system"` against the
 platform, and passing an explicit `"en"`/`"tr"` straight through. Web and mobile should both resolve
-through this one function so they cannot drift; only web calls it today.
-Settings → Language exposes the selector (`apps/web/src/components/settings/SettingsPanels.tsx`,
-`GeneralSettingsPanel`). Switching language applies immediately, without a restart
-(`apps/web/src/hooks/useAppLocaleSync.ts` calls `i18next.changeLanguage` on every settings change).
+through this one function so they cannot drift; both web and mobile call it, each with its own
+platform-appropriate locale source (`navigator.languages` on web, `expo-localization`'s
+`getLocales()` on mobile).
+
+Settings → Language exposes the selector on each surface:
+
+- Web: an inline dropdown in `apps/web/src/components/settings/SettingsPanels.tsx`
+  (`GeneralSettingsPanel`).
+- Mobile: a drill-down picker screen (`SettingsLanguageRouteScreen`), matching the platform's own
+  settings-list convention rather than an inline control.
+
+Switching language applies immediately, without a restart, on both surfaces
+(`useAppLocaleSync` calls `i18next.changeLanguage` whenever the saved preference changes).
 
 ## Implementation (web)
 
-| Piece                          | File                                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `AppLocale` contract           | [settings.ts](../packages/contracts/src/settings.ts)                                                          |
-| Locale resolution (pure)       | [state/locale.ts](../packages/client-runtime/src/state/locale.ts)                                             |
-| i18next init + `syncAppLocale` | [i18n/index.ts](../apps/web/src/i18n/index.ts)                                                                |
-| Resource bundles               | [i18n/locales/en.json](../apps/web/src/i18n/locales/en.json), [tr.json](../apps/web/src/i18n/locales/tr.json) |
-| Settings-change → i18next sync | [hooks/useAppLocaleSync.ts](../apps/web/src/hooks/useAppLocaleSync.ts)                                        |
-| Provider wiring                | [AppRoot.tsx](../apps/web/src/AppRoot.tsx) (`I18nextProvider`, `AppLocaleSync`)                               |
-| Language selector              | [SettingsPanels.tsx](../apps/web/src/components/settings/SettingsPanels.tsx) (`GeneralSettingsPanel`)         |
+| Piece                          | File                                                                                                                 |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `AppLocale` contract           | [settings.ts](../packages/contracts/src/settings.ts)                                                                 |
+| Locale resolution (pure)       | [state/locale.ts](../packages/client-runtime/src/state/locale.ts)                                                    |
+| i18next init + `syncAppLocale` | [i18n/index.ts](../apps/web/src/i18n/index.ts)                                                                       |
+| Resource bundles               | [i18n/locales/en.json](../apps/web/src/i18n/locales/en.json), [tr.json](../apps/web/src/i18n/locales/tr.json)        |
+| Settings-change → i18next sync | [hooks/useAppLocaleSync.ts](../apps/web/src/hooks/useAppLocaleSync.ts)                                               |
+| Provider wiring                | [AppRoot.tsx](../apps/web/src/AppRoot.tsx) (`I18nextProvider`, `AppLocaleSync`)                                      |
+| Language selector              | [SettingsPanels.tsx](../apps/web/src/components/settings/SettingsPanels.tsx) (`GeneralSettingsPanel`)                |
+| Intl formatting                | [intlFormat.ts](../apps/web/src/intlFormat.ts), consumed by [timestampFormat.ts](../apps/web/src/timestampFormat.ts) |
 
-Resource bundles currently hold only the `settings.language.*` keys this slice introduced.
-Migrating the existing T3 Code UI strings into this system is separate, larger work tracked in
-[PROGRESS.md](../PROGRESS.md) alongside the Relay branding rename — not done incrementally as a
-side effect of this foundation.
+## Implementation (mobile)
+
+Mobile has its own resource bundle and its own device-local preference — mobile has no
+client-settings sync with web/desktop, so `appLocale` lives beside every other mobile preference
+(`baseFontSize`, `codeWordBreak`, …) in the same local store, not in `ClientSettings`.
+
+| Piece                             | File                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Device-local `appLocale` field    | [persistence/mobile-preferences.ts](../apps/mobile/src/persistence/mobile-preferences.ts) (`Preferences.appLocale`) |
+| i18next init + `syncAppLocale`    | [i18n/index.ts](../apps/mobile/src/i18n/index.ts)                                                                   |
+| Resource bundles                  | [i18n/locales/en.json](../apps/mobile/src/i18n/locales/en.json), [tr.json](../apps/mobile/src/i18n/locales/tr.json) |
+| Preferences-change → i18next sync | [i18n/useAppLocaleSync.ts](../apps/mobile/src/i18n/useAppLocaleSync.ts)                                             |
+| Provider wiring                   | [App.tsx](../apps/mobile/src/App.tsx) (`I18nextProvider`, `AppLocaleSync`)                                          |
+| Language picker screen            | [SettingsLanguageRouteScreen.tsx](../apps/mobile/src/features/settings/SettingsLanguageRouteScreen.tsx)             |
+
+**Testing note**: `expo-localization` and `react-native` both touch native-module registration at
+import time, which fails to parse under the Vite-based test runner unless mocked — see the
+`vi.mock` calls at the top of
+[i18n/index.test.ts](../apps/mobile/src/i18n/index.test.ts), matching the existing convention in
+`lib/openExternalUrl.test.ts`.
+
+Resource bundles on both platforms currently hold only the `settings.language.*` keys this slice
+introduced. Migrating the existing T3 Code UI strings into this system is separate, larger work
+tracked in [PROGRESS.md](../PROGRESS.md) alongside the Relay branding rename — not done
+incrementally as a side effect of this foundation.
 
 ## What is localized
 
@@ -116,6 +148,21 @@ Use `Intl` rather than hand-rolled formatting, with the resolved locale:
 - `Intl.RelativeTimeFormat` for "3 minutes ago" style output
 - `Intl.PluralRules` (via the i18n library's plural support) for counts
 
+**Implemented**: [intlFormat.ts](../apps/web/src/intlFormat.ts) exports `resolveIntlLocale()` — the
+one place that turns the active `i18next.language` into the BCP 47 tag `Intl` constructors take —
+plus `formatLocalizedPercent`/`formatLocalizedNumber` built on `Intl.NumberFormat`.
+[timestampFormat.ts](../apps/web/src/timestampFormat.ts)'s formatters resolve through the same
+function, so date/time output follows the active UI language, not just the platform default, once
+`syncAppLocale` has switched it.
+
+**Not yet implemented**: `Intl.RelativeTimeFormat` for "ago"/"left" phrasing —
+`timestampFormat.ts`'s relative-time helpers (`formatRelativeTimeLabel`,
+`formatElapsedDurationLabel`, `formatExpiresInLabel`, …) are long-standing, hand-rolled, and
+English-only (`"3m ago"`, `"Expires in 4m"`). Migrating them to `Intl.RelativeTimeFormat` touches
+every call site across the app and is separate, larger work — not a side effect of adding the
+formatting foundation. `Intl.PluralRules`-backed plural forms are available via i18next's built-in
+plural key suffixes (`_one`/`_other`) the moment a string needs them; see Keys below.
+
 Turkish differs from English in ways that break naive string building: it has different plural
 behavior, and vowel-harmony suffixes mean sentence fragments cannot be concatenated. **Never build a
 user-facing sentence by concatenating translated fragments.** Use one key per complete sentence with
@@ -133,6 +180,12 @@ in favor of CSS `text-transform`.
 - Every key exists in `en`. A missing `tr` entry falls back to English rather than rendering the key.
 - Interpolated values are escaped by default. Never disable escaping for user- or provider-supplied
   content.
+- **Plural keys need an explicit `_one` entry in `tr`, even though Turkish CLDR grammar only has an
+  "other" category and the noun never inflects.** Without it, i18next's plural resolver falls
+  through to `fallbackLng` for `count === 1` and silently renders English text under an active
+  Turkish UI — give `_one` and `_other` the same Turkish string. See
+  [i18n/index.test.ts](../apps/web/src/i18n/index.test.ts)'s `pluralization` block, which caught
+  this exact regression once.
 
 ## Rules
 

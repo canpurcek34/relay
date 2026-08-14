@@ -9,6 +9,7 @@ import {
   ServerSettings,
   ServerSettingsPatch,
 } from "./settings.ts";
+import { T3_PROJECT_FILE_NAME, T3_PROJECT_FILE_SCHEMA_URL } from "./t3ProjectFile.ts";
 
 const decodeClientSettings = Schema.decodeUnknownSync(ClientSettingsSchema);
 const decodeClientSettingsPatch = Schema.decodeUnknownSync(ClientSettingsPatch);
@@ -321,5 +322,68 @@ describe("ServerSettingsPatch string normalization", () => {
     expect(encoded.addProjectBaseDirectory).toBe("~/Development");
     expect(encoded.providers?.codex?.binaryPath).toBe("/opt/homebrew/bin/codex");
     expect(encoded.providers?.codex?.launchArgs).toBe("--strict-config");
+  });
+});
+
+describe("ClientSettings forward compatibility (Relay rename)", () => {
+  // A realistic client-settings blob as it would have been persisted to disk
+  // before this session — no `appLocale` key, plus a couple of long-retired
+  // legacy keys real installs may still carry. The Relay branding/EN-TR work
+  // only added display strings and one new client-only field; nothing about
+  // decoding old data should have changed.
+  const preRelayPersistedBlob = {
+    confirmThreadArchive: false,
+    diffIgnoreWhitespace: true,
+    environmentIdentificationMode: "pill",
+    glassOpacity: 65,
+    sidebarProjectSortOrder: "created_at",
+    sidebarThreadSortOrder: "created_at",
+    timestampFormat: "12-hour",
+    wordWrap: false,
+    // Retired keys a genuinely old install could still have on disk.
+    chatWordWrap: true,
+    sidebarV2Enabled: true,
+  };
+
+  it("decodes a pre-rename blob without error and defaults appLocale to system", () => {
+    const decoded = decodeClientSettings(preRelayPersistedBlob);
+
+    expect(decoded.appLocale).toBe("system");
+  });
+
+  it("preserves every pre-existing field value from the old blob untouched", () => {
+    const decoded = decodeClientSettings(preRelayPersistedBlob);
+
+    expect(decoded.confirmThreadArchive).toBe(false);
+    expect(decoded.diffIgnoreWhitespace).toBe(true);
+    expect(decoded.environmentIdentificationMode).toBe("pill");
+    expect(decoded.glassOpacity).toBe(65);
+    expect(decoded.sidebarProjectSortOrder).toBe("created_at");
+    expect(decoded.sidebarThreadSortOrder).toBe("created_at");
+    expect(decoded.timestampFormat).toBe("12-hour");
+    expect(decoded.wordWrap).toBe(false);
+  });
+
+  it("still drops retired keys rather than resurrecting them", () => {
+    const decoded = decodeClientSettings(preRelayPersistedBlob);
+
+    expect(decoded).not.toHaveProperty("chatWordWrap");
+    expect(decoded).not.toHaveProperty("sidebarV2Enabled");
+  });
+
+  it("round-trips a stored appLocale value unchanged", () => {
+    for (const value of ["system", "en", "tr"] as const) {
+      const decoded = decodeClientSettings({ ...preRelayPersistedBlob, appLocale: value });
+      expect(decoded.appLocale).toBe(value);
+    }
+  });
+
+  it("keeps T3_PROJECT_FILE constants stable so t3.json continues to resolve", () => {
+    // The Relay rename deliberately left the checked-in project-file name and
+    // its schema URL untouched (see PROGRESS.md naming migration tracker) —
+    // guard against a future accidental rename breaking existing t3.json
+    // files and bookmarked schema URLs.
+    expect(T3_PROJECT_FILE_NAME).toBe("t3.json");
+    expect(T3_PROJECT_FILE_SCHEMA_URL).toContain("t3.json");
   });
 });

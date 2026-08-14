@@ -9,9 +9,5 @@
         "tr": "Türkçe"
       }
     }
-  },
-  "common": {
-    "daysRemaining_one": "{{count}} gün kaldı",
-    "daysRemaining_other": "{{count}} gün kaldı"
   }
 }

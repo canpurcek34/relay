@@ -6,6 +6,7 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Semaphore from "effect/Semaphore";
 import type { SidebarProjectGroupingMode } from "@t3tools/contracts";
+import type { AppLocale } from "@t3tools/contracts/settings";
 
 import * as MobileDatabase from "./mobile-database";
 import * as MobileSecureStorage from "./mobile-secure-storage";
@@ -37,6 +38,12 @@ export interface Preferences {
   readonly legacyThreadListEnabled?: boolean;
   /** Device-local counterpart of desktop's `planModeEnabled` legacy flag. */
   readonly planModeEnabled?: boolean;
+  /**
+   * UI language preference. Shares the `AppLocale` contract with web/desktop
+   * (`packages/contracts/src/settings.ts`) but is stored device-locally like
+   * every other mobile preference — mobile has no client-settings sync.
+   */
+  readonly appLocale?: AppLocale;
 }
 
 export class MobilePreferencesLoadError extends Schema.TaggedErrorClass<MobilePreferencesLoadError>()(
@@ -91,6 +98,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     autoSettleOnMerge?: boolean;
     legacyThreadListEnabled?: boolean;
     planModeEnabled?: boolean;
+    appLocale?: AppLocale;
   } = {};
 
   if (typeof parsed.liveActivitiesEnabled === "boolean") {
@@ -135,6 +143,9 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.planModeEnabled === "boolean") {
     preferences.planModeEnabled = parsed.planModeEnabled;
+  }
+  if (parsed.appLocale === "system" || parsed.appLocale === "en" || parsed.appLocale === "tr") {
+    preferences.appLocale = parsed.appLocale;
   }
   return preferences;
 }
